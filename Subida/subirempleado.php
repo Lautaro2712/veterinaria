@@ -88,7 +88,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <script src="https://unpkg.com/scrollreveal"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
-    <link rel="icon" type="image/png" href="/!Imagenes/favicon.png">
+    <link rel="icon" type="image/png" href="/../!Imagenes/favicon.png">
     <title>Veterinaria del Mar</title>
 </head>
 
@@ -157,7 +157,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 
-
     <!-- BOTTOM BAR -->
     <header class="p-3"> 
         <div class="container"> 
@@ -175,6 +174,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     <!-- JS MANAGERS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <script src="/../!JS/showpw.js"></script>
 </body>
 </html>
