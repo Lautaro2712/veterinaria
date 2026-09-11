@@ -55,7 +55,7 @@
                 <div class="container"> 
                     <div class="carousel-caption text-start text-white txtbgdarkening ps-5 pe-5"> 
                         <h1>La importancia de la vacunación</h1> 
-                        <p>Ante el aumento de casos de enfermedades infecciosas que afectan especialmente a perros jóvenes y animales con esquemas de vacunación incompletos, es fundamental revisar que las vacunas estén al día.</p>
+                        <p>Ante el aumento de casos de enfermedades infecciosas que afectan especialmente a perros jóvenes y animales con esquemas de vacunación incompletos, es fundamental revisar que las vacunas estén al día. ¿Sabias de que la gente down puede conducir?</p>
                     </div> 
                 </div> 
             </div> 
