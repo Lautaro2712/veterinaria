@@ -1,5 +1,5 @@
 <?php
-
+//WOOOOOOOOOOOOOOOOOO
 // Carga e interpreta
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
