@@ -146,7 +146,7 @@ if ($tipoPerfil === "cliente") {
         href="/!Imagenes/favicon.png"
     >
 
-    <title>Mi perfil - Veterinaria del Mar</title>
+    <title>Veterinaria del Mar</title>
 
 </head>
 
@@ -295,6 +295,77 @@ if ($tipoPerfil === "cliente") {
             <?php endif; ?>
 
 
+            <hr class="my-4">
+
+
+            <h2 class="h5 mb-3 fw-normal text-secondary">
+                Cambiar contraseña
+            </h2>
+
+            <p class="text-secondary" style="font-size: 0.9rem;">
+                Dejá estos tres campos vacíos si no querés cambiar tu contraseña.
+            </p>
+
+
+            <div class="mb-3">
+
+                <label
+                    for="passwordActual"
+                    class="form-label"
+                >
+                    Contraseña actual
+                </label>
+
+                <input
+                    type="password"
+                    class="form-control"
+                    id="passwordActual"
+                    autocomplete="current-password"
+                >
+
+            </div>
+
+            <a href="/Subida/recuperar.php" class="nohighlight"><h6 class="h6 mb-3 fw-normal text-secondary nohighlight">Olvidé mi contraseña</h6></a>
+
+
+            <div class="mb-3">
+
+                <label
+                    for="passwordNueva"
+                    class="form-label"
+                >
+                    Nueva contraseña
+                </label>
+
+                <input
+                    type="password"
+                    class="form-control"
+                    id="passwordNueva"
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
+            <div class="mb-3">
+
+                <label
+                    for="passwordConfirmar"
+                    class="form-label"
+                >
+                    Confirmar nueva contraseña
+                </label>
+
+                <input
+                    type="password"
+                    class="form-control"
+                    id="passwordConfirmar"
+                    autocomplete="new-password"
+                >
+
+            </div>
+
+
             <button
                 type="button"
                 id="btnGuardarPerfil"
@@ -308,7 +379,7 @@ if ($tipoPerfil === "cliente") {
 
     </div>
 
-</div>
+</div><br><br>
 
 
 <script>
@@ -510,6 +581,144 @@ document
             }
 
 
+            // -----------------------------------------------------------
+            // CAMBIO DE CONTRASEÑA (opcional)
+            // -----------------------------------------------------------
+            // Los tres campos son opcionales: si el usuario no quiere
+            // cambiar su contraseña, los deja vacíos y no pasa nada acá.
+            // Pero si completa alguno, tienen que estar los tres.
+
+            const inputPasswordActual =
+                document.getElementById('passwordActual');
+
+            const inputPasswordNueva =
+                document.getElementById('passwordNueva');
+
+            const inputPasswordConfirmar =
+                document.getElementById('passwordConfirmar');
+
+            const passwordActual =
+                inputPasswordActual.value;
+
+            const passwordNueva =
+                inputPasswordNueva.value;
+
+            const passwordConfirmar =
+                inputPasswordConfirmar.value;
+
+            const algunCampoPassword =
+                passwordActual !== '' ||
+                passwordNueva !== '' ||
+                passwordConfirmar !== '';
+
+            if (algunCampoPassword) {
+
+                if (
+                    passwordActual === '' ||
+                    passwordNueva === '' ||
+                    passwordConfirmar === ''
+                ) {
+
+                    throw new Error(
+                        'Para cambiar la contraseña, completá los tres campos de contraseña.'
+                    );
+                }
+
+
+                if (passwordNueva !== passwordConfirmar) {
+
+                    throw new Error(
+                        'La nueva contraseña y su confirmación no coinciden.'
+                    );
+                }
+
+
+                if (passwordNueva.length < 8) {
+
+                    throw new Error(
+                        'La nueva contraseña debe tener al menos 8 caracteres.'
+                    );
+                }
+
+
+                if (passwordNueva === passwordActual) {
+
+                    throw new Error(
+                        'La nueva contraseña debe ser distinta de la actual.'
+                    );
+                }
+
+
+                huboCambios = true;
+
+
+                const cuerpoPassword =
+                    new URLSearchParams();
+
+
+                cuerpoPassword.set(
+                    'accion',
+                    'cambiarPassword'
+                );
+
+
+                cuerpoPassword.set(
+                    'passwordActual',
+                    passwordActual
+                );
+
+
+                cuerpoPassword.set(
+                    'passwordNueva',
+                    passwordNueva
+                );
+
+
+                cuerpoPassword.set(
+                    'passwordConfirmar',
+                    passwordConfirmar
+                );
+
+
+                const respuestaPassword =
+                    await fetch(
+                        '/!PHPchecks/actualizarbm.php',
+                        {
+                            method: 'POST',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/x-www-form-urlencoded'
+                            },
+
+                            body:
+                                cuerpoPassword.toString()
+                        }
+                    );
+
+
+                const dataPassword =
+                    await respuestaPassword.json();
+
+
+                if (!dataPassword.exito) {
+
+                    throw new Error(
+                        dataPassword.error ||
+                        'No se pudo actualizar la contraseña.'
+                    );
+                }
+
+
+                // Se limpian los campos de contraseña después de
+                // guardarla con éxito; a diferencia de los demás campos,
+                // nunca se vuelve a mostrar la contraseña en un input.
+                inputPasswordActual.value = '';
+                inputPasswordNueva.value = '';
+                inputPasswordConfirmar.value = '';
+            }
+
+
             if (huboCambios) {
 
                 mensajeExito.textContent =
@@ -552,6 +761,7 @@ document
     integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
     crossorigin="anonymous"
 ></script>
+<script src="/../!JS/showpw.js"></script>
 
 
 </body>
