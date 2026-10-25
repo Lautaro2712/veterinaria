@@ -2,6 +2,7 @@
 // Carga e interpreta el código de conexion.php
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
+require_once __DIR__ . "/../!PHPchecks/registro_acciones.php";
 requireExactRole([ROL_ADMINISTRADOR]);
 
 // Variables para controlar la visualización de mensajes en el HTML
@@ -69,6 +70,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $sqlInsert = "INSERT INTO empleado (nombreEmpleado, apellidoEmpleado, telefonoEmpleado, correoEmpleado, passwordEmpleado, rolEmpleado) VALUES (?, ?, ?, ?, ?, ?)";
                 $stmtInsert = $conexion->prepare($sqlInsert);
                 $stmtInsert->execute([$nombreEmpleado, $apellidoEmpleado, $telefonoEmpleado, $correoEmpleado, $passwordHasheada, (int) $rolEmpleado]);
+                // Bitácora de acciones (ver registro_acciones.php)
+                registrarAccion($conexion, "Alta de empleado (id " . $conexion->lastInsertId() . "): $nombreEmpleado $apellidoEmpleado, correo $correoEmpleado, rol " . (((int) $rolEmpleado === 1) ? "Administrador" : "Empleado"));
                 $exito = true;
             }
         } catch (PDOException $e) {
@@ -117,7 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         <?php endif; ?>
         <br><form method="POST">
-            <h1 class="h3 mb-3 fw-normal text-secondary">Subir empleado</h1> 
+            <h1 class="h3 mb-3 fw-normal text-secondary">Registrar empleado</h1> 
             <div class="form-floating"> 
                 <input type="text" class="form-control" id="nombreEmpleado" name="nombreEmpleado" minlength="2" maxlength="20" placeholder="John" value="<?php echo htmlspecialchars($nombreEmpleado); ?>" required> 
                 <label for="nombreEmpleado">Nombre</label> 
@@ -150,25 +153,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="password" class="form-control" id="repetirPasswordEmpleado" name="repetirPasswordEmpleado" placeholder="contraseña" required> 
                 <label for="repetirPasswordEmpleado">Confirmar contraseña</label> 
             </div><br>
-            <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Subir al sistema</button><br><br>
-        </form> 
+            <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Registrar</button><br><br>
+        </form>
+        <div class="d-flex justify-content-center">
+        <a href="/Subida/manejarempleados.php" class="text-secondary nohighlight"><button class="btn bg-light-subtle border border-secondary-subtle rounded-5">Ir al menu de manejo</button></a><br><br>
+        </div>
     </main></div><br>
     <!-- END: FORMULARIO SUBIDA DE EMPLEADO -->
-
-    <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-
-    <!-- BOTTOM BAR -->
-    <header class="p-3"> 
-        <div class="container"> 
-            <div> 
-                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
-                    <li><a href="/Informacion/tos.html" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
-                    <li><a href="/Informacion/politicaprivacidad.html" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
-                </ul>
-            </div> 
-        </div>
-    </header>
-    <!-- END: BOTTOM BAR -->
 
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 

@@ -2,6 +2,7 @@
 // Carga e interpreta el código de conexion.php
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
+require_once __DIR__ . "/../!PHPchecks/registro_acciones.php";
 requireRole(ROL_EMPLEADO);
 
 // Variables para controlar la visualización de mensajes en el HTML
@@ -12,7 +13,8 @@ $especieMascota  = "";
 $razaMascota  = "";
 $sexoMascota  = "";
 
-$sql = "SELECT idCliente, nombreCliente FROM cliente ORDER BY nombreCliente ASC";
+$sql = "SELECT idCliente, nombreCliente FROM cliente WHERE activo = TRUE
+        ORDER BY apellidoCliente ASC, nombreCliente ASC";
 $stmt = $conexion->prepare($sql);
 $stmt->execute();
 $clientes = $stmt->fetchAll();
@@ -49,6 +51,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sqlInsert = "INSERT INTO mascota (nombreMascota, especieMascota, razaMascota, sexoMascota, idCliente) VALUES (?, ?, ?, ?, ?)";
             $stmtInsert = $conexion->prepare($sqlInsert);
             $stmtInsert->execute([$nombreMascota, $especieMascota, $razaMascota, $sexoMascota, $idCliente]);
+            // Bitácora de acciones (ver registro_acciones.php)
+            registrarAccion($conexion, "Alta de mascota (id " . $conexion->lastInsertId() . "): $nombreMascota, cliente id $idCliente");
             $exito = true;
         }
     } catch (PDOException $e) {
@@ -96,7 +100,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         <?php endif; ?>
         <br><form method="POST">  
-            <h1 class="h3 mb-3 fw-normal text-secondary">Subir mascota</h1> 
+            <h1 class="h3 mb-3 fw-normal text-secondary">Registrar mascota</h1> 
             <div class="form-floating"> 
                 <input type="text" class="form-control" id="nombreMascota" name="nombreMascota" maxlength="20" placeholder="Pedro" required> 
                 <label for="nombreMascota">Nombre de la mascota</label> 
@@ -128,27 +132,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </select>
                 <label for="idCliente">ID del cliente</label> 
             </div><br>
-            <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Subir al sistema</button><br><br>
-        </form> 
+            <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Registrar</button><br><br>
+        </form>
+        <div class="d-flex justify-content-center">
+        <a href="/Subida/manejarmascotas.php" class="text-secondary nohighlight"><button class="btn bg-light-subtle border border-secondary-subtle rounded-5">Ir al menu de manejo</button></a><br><br>
+        </div>
     </main></div><br>
     
     <!-- END: REGISTER FORM -->
-
-    <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-
-    <!-- BOTTOM BAR -->
-    <header class="p-3"> 
-        <div class="container"> 
-            <div> 
-                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
-                    <li><a href="/Informacion/tos.html" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
-                    <li><a href="/Informacion/politicaprivacidad.html" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
-                </ul>
-            </div> 
-        </div>
-    </header>
-    <!-- END: BOTTOM BAR -->
-
 
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 

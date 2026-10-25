@@ -35,7 +35,7 @@
         wrapper.appendChild(input);
         wrapper.appendChild(btnLimpiar);
 
-        // --- Mensaje de "sin resultados" (oculto por defecto) ---
+        // Mensaje de "sin resultados"
         const sinResultados = document.createElement('p');
         sinResultados.className = 'text-secondary mt-3 buscador-sin-resultados';
         sinResultados.textContent = 'No se encontraron resultados.';

@@ -10,7 +10,7 @@
         return;
     }
 
-    // Viva feliz
+    // cambiarcambiarcambiarcambiarcambiarcambiar
     if (btnDarBaja) {
         btnDarBaja.disabled = false;
         btnDarBaja.removeAttribute('title');
@@ -47,11 +47,15 @@
         e.stopPropagation();
     });
 
-    // "Modificar" -> activa el modo edición sobre la celda seleccionada
+    // "Modificar" -> pide confirmación (mismo modal que "Dar de baja") y,
+    // si se confirma, activa el modo edición sobre la celda seleccionada.
     btnModificar.addEventListener('click', function () {
         menu.style.display = 'none';
         if (celdaActual) {
-            iniciarEdicion(celdaActual);
+            const celdaParaEditar = celdaActual;
+            mostrarConfirmacion('¿Está seguro de su acción?', function () {
+                iniciarEdicion(celdaParaEditar);
+            });
         }
     });
 
@@ -74,11 +78,20 @@
         // así que alcanza con encontrar el <ul> que contiene a esta celda.
         const fila = celda.closest('ul.list-group-horizontal');
 
-        mostrarConfirmacion('¿Está seguro de su acción?', function () {
+        // Si la caja de la lista tiene el atributo data-baja-motivo, el modal
+        // de confirmación suma un campo OPCIONAL para escribir el motivo de
+        // la baja (se usa en citas: con motivo se le avisa por mail al
+        // cliente; sin motivo, la baja se hace en silencio).
+        const pedirMotivo = !!celda.closest('[data-baja-motivo]');
+
+        mostrarConfirmacion('¿Está seguro de su acción?', function (motivo) {
             const cuerpo = new URLSearchParams();
             cuerpo.set('tabla', tabla);
             cuerpo.set('id', idRegistro);
             cuerpo.set('accion', 'eliminar');
+            if (motivo) {
+                cuerpo.set('motivo', motivo);
+            }
 
            fetch('/!PHPchecks/actualizarbm.php', {
                 method: 'POST',
@@ -91,6 +104,17 @@
                         if (fila) {
                             fila.remove();
                         }
+
+                        // Solo si se escribió un motivo hubo intento de mail:
+                        // se le informa al empleado cómo le fue.
+                        if (motivo) {
+                            if (data.correoEnviado) {
+                                alert('Se dio de baja y se le envió un mail al cliente con el motivo.');
+                            } else {
+                                alert('Se dio de baja, pero NO se pudo enviar el mail al cliente: ' +
+                                    (data.errorCorreo || 'error desconocido.'));
+                            }
+                        }
                     } else {
                         alert(data.error || 'No se pudo dar de baja el registro.');
                     }
@@ -98,7 +122,7 @@
                 .catch(function () {
                     alert('Error de conexión al dar de baja el registro.');
                 });
-        });
+        }, { pedirMotivo: pedirMotivo });
     }
 
     function obtenerModalConfirmacion() {
@@ -113,6 +137,11 @@
         modal.innerHTML =
             '<div class="caja-confirmacion">' +
                 '<p class="mensaje-confirmacion"></p>' +
+                '<div class="bloque-motivo-baja" style="display:none; text-align:left; margin-bottom:1rem;">' +
+                    '<label for="motivoBaja" class="form-label" style="font-size:0.9rem;">Motivo de la baja (opcional)</label>' +
+                    '<textarea id="motivoBaja" class="form-control" rows="3" maxlength="500" ' +
+                        'placeholder="Si escribe un motivo, se le enviará por mail al cliente. Si lo deja vacío, no se envía ningún mail."></textarea>' +
+                '</div>' +
                 '<div class="botones-confirmacion">' +
                     '<button type="button" class="btn btn-sm btn-secondary" id="btnCancelarBaja">Volver atrás</button>' +
                     '<button type="button" class="btn btn-sm btn-danger" id="btnConfirmarBaja">Confirmar</button>' +
@@ -122,6 +151,12 @@
 
         modal.addEventListener('click', function (e) {
             if (e.target === modal) {
+                // Si ya se escribió un motivo, un clic accidental afuera no
+                // debe tirarlo a la basura.
+                const campoMotivo = modal.querySelector('#motivoBaja');
+                if (campoMotivo && campoMotivo.value.trim() !== '') {
+                    return;
+                }
                 ocultarConfirmacion();
             }
         });
@@ -129,19 +164,33 @@
         return modal;
     }
 
-    function mostrarConfirmacion(mensaje, alConfirmar) {
+    // opciones.pedirMotivo = true muestra el campo opcional de motivo; en ese
+    // caso alConfirmar recibe el texto escrito (o '' si se dejó vacío).
+    function mostrarConfirmacion(mensaje, alConfirmar, opciones) {
         const modal = obtenerModalConfirmacion();
         modal.querySelector('.mensaje-confirmacion').textContent = mensaje;
 
+        const pedirMotivo = !!(opciones && opciones.pedirMotivo);
+        const bloqueMotivo = modal.querySelector('.bloque-motivo-baja');
+        const campoMotivo = modal.querySelector('#motivoBaja');
+
+        bloqueMotivo.style.display = pedirMotivo ? 'block' : 'none';
+        campoMotivo.value = '';
+
         modal.querySelector('#btnConfirmarBaja').onclick = function () {
+            const motivo = pedirMotivo ? campoMotivo.value.trim() : '';
             ocultarConfirmacion();
-            alConfirmar();
+            alConfirmar(motivo);
         };
         modal.querySelector('#btnCancelarBaja').onclick = function () {
             ocultarConfirmacion();
         };
 
         modal.classList.add('visible');
+
+        if (pedirMotivo) {
+            campoMotivo.focus();
+        }
     }
 
     function ocultarConfirmacion() {

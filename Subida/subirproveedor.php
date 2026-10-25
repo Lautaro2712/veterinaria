@@ -2,6 +2,7 @@
 // Carga e interpreta el código de conexion.php
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
+require_once __DIR__ . "/../!PHPchecks/registro_acciones.php";
 requireRole(ROL_EMPLEADO);
 
 // Variables para controlar la visualización de mensajes en el HTML
@@ -43,6 +44,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sqlInsert = "INSERT INTO proveedor (rutProveedor, nombreProveedor, telefonoProveedor, correoProveedor) VALUES (?, ?, ?, ?)";
             $stmtInsert = $conexion->prepare($sqlInsert);
             $stmtInsert->execute([$rutProveedor, $nombreProveedor, $telefonoProveedor, $correoProveedor]);
+            // Bitácora de acciones (ver registro_acciones.php)
+            registrarAccion($conexion, "Alta de proveedor (id " . $conexion->lastInsertId() . "): $nombreProveedor, RUT $rutProveedor");
             $exito = true;
         }
     } catch (PDOException $e) {
@@ -90,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
         <?php endif; ?> 
         <br><form method="POST">  
-            <h1 class="h3 mb-3 fw-normal text-secondary">Subir proveedor al sistema</h1> 
+            <h1 class="h3 mb-3 fw-normal text-secondary">Registrar proveedor</h1> 
             <div class="form-floating"> 
                 <input type="number" class="form-control" id="rutProveedor" name="rutProveedor" min="1" min="99999999999" placeholder="12345678" required> 
                 <label for="rutProveedor">RUT</label> 
@@ -107,26 +110,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <input type="email" class="form-control" id="correoProveedor" name="correoProveedor" maxlength="60" placeholder="nombre@ejemplo.com" required> 
                 <label for="correoProveedor">Correo electronico</label> 
             </div><br>
-            <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Subir al sistema</button><br><br> 
-        </form> 
+            <button class="btn bg-info-subtle border border-info-subtle rounded-5 w-100" type="submit">Registrar</button><br><br>
+        </form>
+        <div class="d-flex justify-content-center">
+        <a href="/Subida/manejarproveedores.php" class="text-secondary nohighlight"><button class="btn bg-light-subtle border border-secondary-subtle rounded-5">Ir al menu de manejo</button></a><br><br>
+        </div>
     </main></div><br>
     <!-- END: REGISTER FORM -->
-
-    <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-
-    <!-- BOTTOM BAR -->
-    <header class="p-3"> 
-        <div class="container"> 
-            <div> 
-                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
-                    <li><a href="/Informacion/tos.html" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
-                    <li><a href="/Informacion/politicaprivacidad.html" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
-                </ul>
-            </div> 
-        </div>
-    </header>
-    <!-- END: BOTTOM BAR -->
-
 
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 

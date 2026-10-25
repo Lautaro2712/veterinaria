@@ -1,5 +1,5 @@
 <?php
-//WOOOOOOOOOOOOOOOOOO
+
 // Carga e interpreta
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
@@ -14,9 +14,40 @@ date_default_timezone_set('America/Montevideo');
 $exito = false;
 $error = null;
 
-$tipoServicio  = "Cita";
+$tipoServicio  = 0;   // id de tipo_servicio (numérico)
 $fechaServicio = '';
 $horaServicio  = '';
+
+// Horarios disponibles, en el mismo orden en que aparecen en el <select>
+// más abajo. El bloqueo de horarios por tipo de servicio se calcula
+// sobre la POSICIÓN dentro de esta lista (no sobre el reloj), tal cual
+// se pidió: "la siguiente hora disponible EN LA TABLA DE HORAS".
+$horariosDisponibles = [
+    '09:00', '09:30', '10:00', '10:30',
+    '11:00', '11:30', '12:00', '12:30',
+    '15:00', '15:30', '16:00', '16:30',
+    '17:00', '17:30', '18:00', '18:30',
+    '19:00', '19:30'
+];
+
+// Tipos de servicio que funcionan como CITA, leídos de la tabla tipo_servicio
+// (esCita = 1). Clave = id. 'nombre' es para mostrar en pantalla y 'extra' =
+// franjas de 30 min ADICIONALES que bloquea el servicio (total = 1 + extra).
+// Agregar o cambiar un tipo de cita en esa tabla alcanza: no hay que tocar
+// este archivo.
+$stmtTipos = $conexion->query("SELECT id, servicio, franjasExtra FROM tipo_servicio WHERE esCita = 1");
+$tiposServicio = [];
+foreach ($stmtTipos->fetchAll() as $t) {
+    $tiposServicio[(int) $t['id']] = [
+        'nombre' => ucfirst((string) $t['servicio']),
+        'extra'  => (int) $t['franjasExtra'],
+    ];
+}
+
+// "1,2,3,4": para los IN (...). Son enteros que salen de la base (no del
+// usuario), así que es seguro interpolarlos. Si no hubiera ningún tipo de
+// cita cargado, '0' evita un "IN ()" vacío, que es un error de SQL.
+$idsCitas = $tiposServicio ? implode(',', array_keys($tiposServicio)) : '0';
 
 // Obtenemos el cliente autenticado desde la sesión
 $idCliente = idClienteActual();
@@ -30,12 +61,18 @@ if ($idCliente === null) {
 
 function obtenerCitaActivaDeCliente(PDO $conexion, int $idCliente): ?array
 {
-    $sql = "SELECT idServicio, fechaServicio, horaServicio
-            FROM servicio
-            WHERE idCliente = ?
-            AND tipoServicio = 'Cita'
-            AND activo = TRUE
-            ORDER BY fechaServicio ASC, horaServicio ASC
+    // tipoServicio ahora es un id de tipo_servicio. "Tiene una cita activa"
+    // significa tener un servicio activo cuyo tipo sea una cita (esCita = 1);
+    // servicios como hotelería o venta no cuentan. El JOIN trae además el
+    // nombre legible del tipo para mostrarlo en el aviso.
+    $sql = "SELECT s.idServicio, s.tipoServicio, ts.servicio AS nombreTipoServicio,
+                   s.fechaServicio, s.horaServicio
+            FROM servicio s
+            INNER JOIN tipo_servicio ts ON s.tipoServicio = ts.id
+            WHERE s.idCliente = ?
+            AND ts.esCita = 1
+            AND s.activo = TRUE
+            ORDER BY s.fechaServicio ASC, s.horaServicio ASC
             LIMIT 1";
 
     $stmt = $conexion->prepare($sql);
@@ -63,13 +100,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
 
     // 1. RECEPCIÓN Y VALIDACIÓN DE DATOS
+    $tipoServicio  = (int) ($_POST['tipoServicio'] ?? 0);
     $fechaServicio = $_POST['fechaServicio'] ?? '';
     $horaServicio  = $_POST['horaServicio'] ?? '';
 
     // Comprobamos que los campos requeridos no estén vacíos
-    if (empty($fechaServicio) || empty($horaServicio)) {
+    if ($tipoServicio === 0 || empty($fechaServicio) || empty($horaServicio)) {
 
-        $error = "Por favor, complete tanto la fecha como el horario.";
+        $error = "Por favor, complete todos los campos solicitados.";
+
+    } elseif (!array_key_exists($tipoServicio, $tiposServicio)) {
+
+        // El <select> del formulario ya restringe las opciones, pero esto
+        // es la comprobación real: nunca hay que confiar en que el
+        // navegador mande solo valores válidos.
+        $error = "El tipo de servicio seleccionado no es válido.";
 
     } else {
 
@@ -111,58 +156,114 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // 2. VERIFICACIÓN DE DISPONIBILIDAD E INSERCIÓN
             // -----------------------------------------------------------------
 
-            // Comprobar si ya existe una cita ACTIVA en la misma fecha y hora
-            $sqlCheck = "SELECT idServicio
-                         FROM servicio
-                         WHERE fechaServicio = ?
-                         AND horaServicio = ?
-                         AND tipoServicio = 'Cita'
-                         AND activo = TRUE";
+            // Ubicar en qué posición de la tabla de horarios cae la hora
+            // elegida, para saber cuáles son "las siguientes N franjas".
+            $indiceInicio = array_search($horaServicio, $horariosDisponibles, true);
 
-            try {
+            if ($indiceInicio === false) {
 
-                $stmtCheck = $conexion->prepare($sqlCheck);
+                $error = "El horario seleccionado no es válido.";
 
-                $stmtCheck->execute([
-                    $fechaServicio,
-                    $horaServicio
-                ]);
+            } else {
 
-                // Si la consulta devuelve una fila, el horario está ocupado
-                if ($stmtCheck->fetchColumn() !== false) {
+                $totalFranjas = 1 + $tiposServicio[$tipoServicio]['extra'];
 
-                    $error = "Lo sentimos, ya existe una cita reservada para la fecha y hora seleccionadas.";
+                $franjasNecesarias = array_slice($horariosDisponibles, $indiceInicio, $totalFranjas);
+
+                if (count($franjasNecesarias) < $totalFranjas) {
+
+                    // No quedan suficientes franjas después de la elegida
+                    // (por ejemplo, una Cirugía pedida a las 19:00, que no
+                    // tiene 6 franjas por delante ese mismo día).
+                    $error = "No hay suficientes horarios disponibles después de las "
+                        . htmlspecialchars($horaServicio, ENT_QUOTES, 'UTF-8')
+                        . " para un servicio de tipo \"" . htmlspecialchars($tiposServicio[$tipoServicio]['nombre'], ENT_QUOTES, 'UTF-8')
+                        . "\". Elija un horario más temprano.";
 
                 } else {
 
-                    // ---------------------------------------------------------
-                    // INSERTAR CITA ASOCIADA AL CLIENTE AUTENTICADO
-                    // ---------------------------------------------------------
+                    try {
 
-                    $sqlInsert = "INSERT INTO servicio
-                                  (
-                                      tipoServicio,
-                                      fechaServicio,
-                                      horaServicio,
-                                      idCliente
-                                  )
-                                  VALUES (?, ?, ?, ?)";
+                        // Trae, de cada servicio ya agendado ESE día, su
+                        // tipo y su hora de INICIO. Ojo: la hora de inicio
+                        // sola no alcanza para saber qué está realmente
+                        // ocupado — una Cirugía a las 17:00 solo guarda
+                        // "17:00" en la base, pero sigue tapando 17:30,
+                        // 18:00, etc. Por eso, para cada fila existente, se
+                        // reconstruye su propio rango completo de franjas
+                        // (con la misma lógica que se usó para el servicio
+                        // nuevo más arriba) antes de comparar.
+                        $sqlOcupadas = "SELECT tipoServicio, horaServicio
+                                        FROM servicio
+                                        WHERE fechaServicio = ?
+                                        AND tipoServicio IN ($idsCitas)
+                                        AND activo = TRUE";
 
-                    $stmtInsert = $conexion->prepare($sqlInsert);
+                        $stmtOcupadas = $conexion->prepare($sqlOcupadas);
+                        $stmtOcupadas->execute([$fechaServicio]);
 
-                    $stmtInsert->execute([
-                        $tipoServicio,
-                        $fechaServicio,
-                        $horaServicio,
-                        $idCliente
-                    ]);
+                        $horasOcupadas = [];
 
-                    $exito = true;
+                        foreach ($stmtOcupadas->fetchAll() as $filaExistente) {
+
+                            $horaExistente = substr($filaExistente['horaServicio'], 0, 5);
+                            $indiceExistente = array_search($horaExistente, $horariosDisponibles, true);
+
+                            if ($indiceExistente === false) {
+                                // Dato fuera de la tabla de horarios (no
+                                // debería pasar); se ignora por las dudas
+                                // en vez de romper la validación.
+                                continue;
+                            }
+
+                            $franjasExistente = 1 + ($tiposServicio[(int) $filaExistente['tipoServicio']]['extra'] ?? 0);
+
+                            $horasOcupadas = array_merge(
+                                $horasOcupadas,
+                                array_slice($horariosDisponibles, $indiceExistente, $franjasExistente)
+                            );
+                        }
+
+                        $franjasEnConflicto = array_intersect($franjasNecesarias, $horasOcupadas);
+
+                        if (!empty($franjasEnConflicto)) {
+
+                            $error = "Lo sentimos, el horario elegido se superpone con otro servicio ya agendado ("
+                                . htmlspecialchars(implode(', ', $franjasEnConflicto), ENT_QUOTES, 'UTF-8')
+                                . "). Elija otro horario.";
+
+                        } else {
+
+                            // ---------------------------------------------------------
+                            // INSERTAR CITA ASOCIADA AL CLIENTE AUTENTICADO
+                            // ---------------------------------------------------------
+
+                            $sqlInsert = "INSERT INTO servicio
+                                          (
+                                              tipoServicio,
+                                              fechaServicio,
+                                              horaServicio,
+                                              idCliente
+                                          )
+                                          VALUES (?, ?, ?, ?)";
+
+                            $stmtInsert = $conexion->prepare($sqlInsert);
+
+                            $stmtInsert->execute([
+                                $tipoServicio,
+                                $fechaServicio,
+                                $horaServicio,
+                                $idCliente
+                            ]);
+
+                            $exito = true;
+                        }
+
+                    } catch (PDOException $e) {
+
+                        $error = "Error al guardar la cita: " . $e->getMessage();
+                    }
                 }
-
-            } catch (PDOException $e) {
-
-                $error = "Error al guardar la cita: " . $e->getMessage();
             }
         }
     }
@@ -226,7 +327,7 @@ $fechaMaxima = date('Y-12-31');
 
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
 
-                        ✔ ¡Cita solicitada con éxito para la fecha
+                        ✔ ¡<?php echo htmlspecialchars($tiposServicio[$tipoServicio]['nombre'] ?? 'Cita', ENT_QUOTES, 'UTF-8'); ?> solicitada con éxito para la fecha
 
                         <strong>
                             <?php
@@ -301,6 +402,25 @@ $fechaMaxima = date('Y-12-31');
 
                         <div class="form-floating">
 
+                            <select name="tipoServicio" id="tipoServicio" class="form-select" required>
+
+                                <option value="" disabled selected>Seleccione un tipo de servicio</option>
+                                <?php foreach ($tiposServicio as $id => $t): ?>
+                                    <option value="<?php echo $id; ?>"><?php echo htmlspecialchars($t['nombre'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+
+                            </select>
+
+                            <label for="tipoServicio">
+                                Tipo de servicio
+                            </label>
+
+                        </div>
+
+                        <br>
+
+                        <div class="form-floating">
+
                             <select name="horaServicio" id="horaServicio" class="form-select" required>
 
                                 <option value="09:00">9:00</option>
@@ -352,7 +472,7 @@ $fechaMaxima = date('Y-12-31');
 
                     <div class="alert alert-info" role="alert">
 
-                        Ya tenés una cita agendada para el
+                        Ya tenés un servicio agendado (<?php echo htmlspecialchars(ucfirst((string) $citaActiva["nombreTipoServicio"]), ENT_QUOTES, 'UTF-8'); ?>) para el
 
                         <strong>
                             <?php
@@ -381,7 +501,7 @@ $fechaMaxima = date('Y-12-31');
 
                     </div>
 
-                    <p class="text-secondary">¿Ya atendieron tu cita y seguís sin poder agendar? <a href="#" class="nohighlight">Contactanos</a>.</p>
+                    <p class="text-secondary">¿Ya atendieron tu cita y seguís sin poder agendar? <a href="https://api.whatsapp.com/send?phone=598094191775" class="nohighlight">Contactanos</a>.</p>
                     <br>
 
                 <?php endif; ?>
@@ -397,43 +517,16 @@ $fechaMaxima = date('Y-12-31');
         <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 
         <!-- BOTTOM BAR -->
-        <header class="p-3">
-
-            <div class="container">
-
-                <div>
-
-                    <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-
-                        <li>
-                            <a
-                                href="/Informacion/tos.html"
-                                class="nav-link px-2 text-secondary ahover"
-                            >
-                                Terminos y Condiciones
-                            </a>
-                        </li>
-
-                        <li>
-                            <a
-                                href="/Informacion/politicaprivacidad.html"
-                                class="nav-link px-2 text-secondary ahover"
-                            >
-                                Politica de Privacidad
-                            </a>
-                        </li>
-
-                    </ul>
-
-                </div>
-
-            </div>
-
-        </header>
-
-        <!-- END: BOTTOM BAR -->
-
-    </div>
+    <footer class="p-3">
+        <div class="container"> 
+            <div> 
+                <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
+                    <li><a href="/Informacion/terminoscondiciones.pdf" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
+                    <li><a href="/Informacion/politicaprivacidad.pdf" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
+                </ul>
+            </div> 
+        </div>
+    </footer><br>
 
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 

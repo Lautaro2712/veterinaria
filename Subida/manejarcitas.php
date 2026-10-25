@@ -3,10 +3,14 @@ require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
 requireRole(ROL_EMPLEADO);
 
-// Da de baja automáticamente las citas cuya fecha y hora ya pasaron
+// Da de baja automáticamente las CITAS cuya fecha y hora ya pasaron.
+// servicio.tipoServicio ahora guarda el id de la tabla tipo_servicio, y
+// "es una cita" lo define la columna tipo_servicio.esCita (así, servicios
+// como hotelería o venta, con esCita = 0, no se tocan). Agregar un nuevo
+// tipo de cita en esa tabla alcanza para que entre acá sin cambiar código.
 $sqlBajaCitas = "UPDATE servicio
                  SET activo = FALSE
-                 WHERE tipoServicio = 'Cita'
+                 WHERE tipoServicio IN (SELECT id FROM tipo_servicio WHERE esCita = 1)
                  AND activo = TRUE
                  AND TIMESTAMP(fechaServicio, horaServicio) < NOW()";
 
@@ -16,12 +20,16 @@ $stmtBajaCitas->execute();
 // Trae a todas las citas activas, junto con el nombre y apellido del
 // cliente que la solicitó (LEFT JOIN por si el cliente fue dado de baja
 // después de pedir la cita, para que la fila no desaparezca ni rompa).
-$sql = "SELECT s.idServicio, s.tipoServicio, s.fechaServicio, s.horaServicio,
+// El JOIN con tipo_servicio trae el nombre legible del tipo (ts.servicio) y
+// permite filtrar solo las citas (ts.esCita = 1).
+$sql = "SELECT s.idServicio, s.tipoServicio, ts.servicio AS nombreTipoServicio,
+               s.fechaServicio, s.horaServicio,
                s.idEmpleado, s.idCliente, s.idMascota,
                c.nombreCliente, c.apellidoCliente
         FROM servicio s
+        INNER JOIN tipo_servicio ts ON s.tipoServicio = ts.id
         LEFT JOIN cliente c ON s.idCliente = c.idCliente
-        WHERE s.tipoServicio = 'Cita' AND s.activo = TRUE
+        WHERE ts.esCita = 1 AND s.activo = TRUE
         ORDER BY s.idServicio ASC, s.idMascota ASC;";
 $stmt = $conexion->prepare($sql);
 $stmt->execute();
@@ -48,7 +56,7 @@ $items = $stmt->fetchAll();
     <!-- TOP BAR -->
     <?php include '../topbar.php'; ?>
 
-<!-- MENU CONTEXTUAL -->
+    <!-- MENU CONTEXTUAL -->
     <div id="menuContextual">
         <button type="button" id="btnModificar">Modificar</button>
         <button type="button" id="btnDarBaja">Dar de baja</button>
@@ -58,18 +66,17 @@ $items = $stmt->fetchAll();
 
     <!-- MANEJAR CITAS (READ ONLY) -->
 
-    <!-- MENU CONTEXTUAL (compartido por todas las celdas editables) -->
-    <div id="menuContextual">
-        <button type="button" id="btnModificar">Modificar</button>
-        <button type="button" id="btnDarBaja">Dar de baja</button>
-    </div>
-
     <!-- LISTA -->
-    <div class="container mt-5 pt-5"><div class="h-100 p-5 bg-light border rounded-3">  
+    <div class="container mt-5 pt-5"><div class="h-100 p-5 bg-light border rounded-3 caja-manejo" data-orden-nombre="nombreCliente" data-baja-motivo>
+        <button type="button" class="btn btn-outline-secondary border border-secondary-subtle rounded-5 btn-pantalla-completa-manejo" title="Poner en pantalla completa" aria-pressed="false"><span class="texto-pantalla-completa">⛶</span></button>  
         <h1 class="h3 mb-3 fw-normal text-secondary">Datos de citas</h1><br>
+        <a href="/Subida/subircita.php" class="text-secondary nohighlight"><button class="btn btn-outline-secondary me-2 border border-secondary-subtle rounded-5">Crear cita</button></a>
+        <button class="btn btn-outline-secondary me-2 border border-secondary-subtle rounded-5 btn-orden-manejo" title="Ordenar alfabéticamente" aria-pressed="false"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filter-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M7 11.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m-2-3a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5"/></svg></button>
+        <button class="btn btn-outline-secondary me-2 border border-secondary-subtle rounded-5" onClick="window.print()"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16"><path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1"/><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1"/></svg></button><br><br>
         <ul class="list-group list-group-horizontal pb-1">
             <li class="list-group-item list-group-item-action list-group-item-light">ID</li>
             <li class="list-group-item list-group-item-action list-group-item-light">Cliente</li>
+            <li class="list-group-item list-group-item-action list-group-item-light">Tipo</li>
             <li class="list-group-item list-group-item-action list-group-item-light">Fecha</li>
             <li class="list-group-item list-group-item-action list-group-item-light">Hora</li>
         </ul>
@@ -82,12 +89,20 @@ $items = $stmt->fetchAll();
                     <li class="list-group-item list-group-item-action list-group-item-light cell-break">
                         <?php echo htmlspecialchars($item["idServicio"]); ?>
                     </li>
-                    <li class="list-group-item list-group-item-action list-group-item-light cell-break">
+                    <li class="list-group-item list-group-item-action list-group-item-light cell-break"
+                        data-celda-orden>
                         <?php
                         echo $item["idCliente"] !== null
                             ? htmlspecialchars(trim($item["nombreCliente"] . ' ' . $item["apellidoCliente"]))
                             : "Sin cliente";
                         ?>
+                    </li>
+                    <!-- Tipo de servicio: no editable desde acá a propósito.
+                         Cambiarlo cambia cuántas franjas horarias ocupa el
+                         servicio (ver solicitarcita.php), y esta grilla no
+                         recalcula ni revalida esas franjas al editar. -->
+                    <li class="list-group-item list-group-item-action list-group-item-light cell-break">
+                        <?php echo htmlspecialchars(ucfirst((string) $item["nombreTipoServicio"])); ?>
                     </li>
                     <li class="list-group-item list-group-item-action list-group-item-light cell-break editable-cell"
                         data-tabla="servicio"
@@ -117,5 +132,7 @@ $items = $stmt->fetchAll();
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="/../!JS/edicionInline.js?v=2" defer></script>
     <script src="/../!JS/busquedainline.js?v=2" defer></script>
+    <script src="/../!JS/ordeninline.js"></script>
+    <script src="/../!JS/pantallaCompletaManejo.js"></script>
 </body>
 </html>

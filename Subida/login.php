@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 session_regenerate_id(true);
                 $_SESSION["idEmpleado"] = $empleado["idEmpleado"];
-                $_SESSION["nombreCliente"] = $empleado["nombreEmpleado"]; // reutilizamos la misma clave para el topbar
+                $_SESSION["nombreCliente"] = $empleado["nombreEmpleado"];
                 $_SESSION["apellidoCliente"] = $empleado["apellidoEmpleado"];
                 $_SESSION["nivelRol"] = $nivel;
 
@@ -59,7 +59,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en"></html>
 <head>
@@ -96,20 +95,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </div>
             <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Iniciar sesión</button><br><br>
             <a href="/Subida/registro.php" class="nohighlight"><h6 class="h6 mb-3 fw-normal text-secondary nohighlight">No tengo una cuenta</h6></a> 
-            <a href="/index.php" class="nohighlight"><h6 class="h6 mb-3 fw-normal text-secondary nohighlight">Olvidé mi contraseña</h6></a>
+            <a href="/Subida/recuperar.php" class="nohighlight"><h6 class="h6 mb-3 fw-normal text-secondary nohighlight">Olvidé mi contraseña</h6></a>
         </form> 
     </main></div><br>
 
-    <header class="p-3"> 
+    <footer class="p-3">
         <div class="container"> 
             <div> 
                 <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
-                    <li><a href="/Informacion/tos.html" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
-                    <li><a href="/Informacion/politicaprivacidad.html" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
+                    <li><a href="/Informacion/terminoscondiciones.pdf" class="nav-link px-2 text-secondary ahover">Terminos y Condiciones</a></li>
+                    <li><a href="/Informacion/politicaprivacidad.pdf" class="nav-link px-2 text-secondary ahover">Politica de Privacidad</a></li> 
                 </ul>
             </div> 
         </div>
-    </header>
+    </footer><br>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <script src="/../!JS/showpw.js"></script>

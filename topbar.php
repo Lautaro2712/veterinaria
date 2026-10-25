@@ -4,17 +4,17 @@ require_once __DIR__ . "/!PHPchecks/auth.php";
 $rol = rolActual();
 ?>
 
-<header class="p-2 shadow bg-body fixed-top"> 
+<header class="p-2 shadow bg-body"> 
     <div class="container-fluid"> 
         <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start"> 
 
-            <img 
+            <a href="/index.php"><img 
                 src="/!Imagenes/veticon.png" 
                 class="me-3" 
                 style="max-width: 50px; max-height: 50px;" 
                 draggable="false" 
                 alt=""
-            >
+            ></a>
 
             <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0"> 
 
@@ -26,7 +26,6 @@ $rol = rolActual();
                         Indice
                     </a>
                 </li>
-
 
                 <?php if ($rol == ROL_CLIENTE): ?>
 
@@ -41,7 +40,6 @@ $rol = rolActual();
 
                 <?php endif; ?>
 
-
                 <?php if ($rol >= ROL_EMPLEADO): ?>
 
                     <li class="nav-item dropdown">
@@ -53,7 +51,7 @@ $rol = rolActual();
                             data-bs-toggle="dropdown" 
                             aria-expanded="false"
                         >
-                            Menu de manejo
+                            Menu de gestión
                         </a>
 
                         <ul class="dropdown-menu animate__animated animate__zoomIn">
@@ -63,7 +61,7 @@ $rol = rolActual();
                                     href="/Subida/manejarcitas.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar citas
+                                    Citas
                                 </a>
                             </li> 
 
@@ -72,7 +70,7 @@ $rol = rolActual();
                                     href="/Subida/manejarfichas.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar fichas
+                                    Fichas
                                 </a>
                             </li>
 
@@ -81,7 +79,7 @@ $rol = rolActual();
                                     href="/Subida/manejarclientes.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar clientes
+                                    Clientes
                                 </a>
                             </li>
 
@@ -93,7 +91,7 @@ $rol = rolActual();
                                         href="/Subida/manejarempleados.php?v=2" 
                                         class="nav-link px-2 text-secondary ahover"
                                     >
-                                        Manejar empleados
+                                        Empleados
                                     </a>
                                 </li>
 
@@ -105,7 +103,7 @@ $rol = rolActual();
                                     href="/Subida/manejarmascotas.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar mascotas
+                                    Mascotas
                                 </a>
                             </li>
 
@@ -114,7 +112,7 @@ $rol = rolActual();
                                     href="/Subida/manejarmascotashotel.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar mascotas en el hotel
+                                    Mascotas en el hotel
                                 </a>
                             </li> 
 
@@ -123,7 +121,7 @@ $rol = rolActual();
                                     href="/Subida/manejarproveedores.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar proveedores
+                                    Proveedores
                                 </a>
                             </li> 
 
@@ -132,7 +130,7 @@ $rol = rolActual();
                                     href="/Subida/manejarproductos.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar productos
+                                    Productos
                                 </a>
                             </li>
 
@@ -141,7 +139,7 @@ $rol = rolActual();
                                     href="/Subida/manejarfacturas.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Manejar facturas
+                                    Facturas
                                 </a>
                             </li>
 
@@ -159,20 +157,37 @@ $rol = rolActual();
                             data-bs-toggle="dropdown" 
                             aria-expanded="false"
                         >
-                            Subir al sistema
+                            Registrar
                         </a>
 
                         <ul class="dropdown-menu animate__animated animate__zoomIn">
 
                             <li>
                                 <a 
-                                    href="/Subida/subirficha.php" 
+                                    href="/Subida/subircita.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir ficha
+                                    Citas
                                 </a>
                             </li>
 
+                            <li>
+                                <a 
+                                    href="/Subida/subirficha.php" 
+                                    class="nav-link px-2 text-secondary ahover"
+                                >
+                                    Fichas
+                                </a>
+                            </li>
+                        
+                            <li>
+                                <a 
+                                    href="/Subida/subircliente.php" 
+                                    class="nav-link px-2 text-secondary ahover"
+                                >
+                                    Clientes
+                                </a>
+                            </li> 
 
                             <?php if ($rol >= ROL_ADMINISTRADOR): ?>
 
@@ -181,7 +196,7 @@ $rol = rolActual();
                                         href="/Subida/subirempleado.php" 
                                         class="nav-link px-2 text-secondary ahover"
                                     >
-                                        Subir empleado
+                                        Empleados
                                     </a>
                                 </li>
 
@@ -193,7 +208,7 @@ $rol = rolActual();
                                     href="/Subida/subirmascota.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir mascota
+                                    Mascotas
                                 </a>
                             </li>
 
@@ -202,7 +217,7 @@ $rol = rolActual();
                                     href="/Subida/subirmascotahotel.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir mascota al hotel
+                                    Mascotas al hotel
                                 </a>
                             </li>
 
@@ -211,7 +226,7 @@ $rol = rolActual();
                                     href="/Subida/subirproveedor.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir proveedor
+                                    Proveedores
                                 </a>
                             </li>
 
@@ -220,7 +235,7 @@ $rol = rolActual();
                                     href="/Subida/subirproducto.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir producto
+                                    Productos
                                 </a>
                             </li> 
 
@@ -229,7 +244,7 @@ $rol = rolActual();
                                     href="/Subida/subirfactura.php" 
                                     class="nav-link px-2 text-secondary ahover"
                                 >
-                                    Subir factura
+                                    Facturas
                                 </a>
                             </li>
 
@@ -311,7 +326,6 @@ $rol = rolActual();
                             Registrarse
                         </button>
                     </a>
-
 
                 <?php endif; ?>
 

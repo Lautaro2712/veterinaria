@@ -2,6 +2,7 @@
 // Carga e interpreta el código de conexion.php
 require_once __DIR__ . "/../!PHPchecks/conexion.php";
 require_once __DIR__ . "/../!PHPchecks/auth.php";
+require_once __DIR__ . "/../!PHPchecks/registro_acciones.php";
 requireRole(ROL_EMPLEADO);
 
 // Zona horaria de Uruguay, para que la fecha automática de registro
@@ -28,6 +29,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // 1. RECEPCIÓN Y VALIDACIÓN DE DATOS
     $vacunacionFichaClinica = $_POST["vacunacionFichaClinica"] ?? "";
     $pesoFichaClinica  = $_POST['pesoFichaClinica']  ?? '';
+    // La fecha de registro ya no se recibe del formulario: se asigna
+    // automáticamente con la fecha del día en que se sube la ficha,
+    // así el empleado no tiene que completarla a mano ni puede
+    // equivocarla.
     $fechaRegistroFichaClinica = date('Y-m-d');
     $antecedentesFichaClinica = $_POST["antecedentesFichaClinica"]  ?? "";
     $idMascota = $_POST['idMascota']  ?? '';
@@ -54,10 +59,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sqlInsert = "INSERT INTO ficha_clinica (vacunacionFichaClinica, pesoFichaClinica, fechaRegistroFichaClinica, antecedentesFichaClinica, idMascota) VALUES (?, ?, ?, ?, ?)";
             $stmtInsert = $conexion->prepare($sqlInsert);
             $stmtInsert->execute([$vacunacionFichaClinica, $pesoFichaClinica, $fechaRegistroFichaClinica, $antecedentesFichaClinica, $idMascota]);
+            // Bitácora de acciones (ver registro_acciones.php)
+            registrarAccion($conexion, "Alta de ficha clínica (id " . $conexion->lastInsertId() . "): mascota id $idMascota, fecha $fechaRegistroFichaClinica");
             $exito = true;
         }
     } catch (PDOException $e) {
-        $error = "Error al subir la ficha al sistema: " . $e->getMessage();
+        $error = "Error al subir el producto al sistema: " . $e->getMessage();
     }
     }
 }
@@ -87,56 +94,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★ -->
 
     <!-- REGISTER FORM -->
-    <div class="container-fluid margins mt-5 pt-4">
+    <div class="container-fluid mt-5 pt-4">
         <div class="row justify-content-center">
 
-            <!-- FORMULARIO -->
-            <div class="col-lg-12 col-md-7">
-                <main class="form-signin m-5 mt-0">
-                    <?php if (!empty($exito)): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            ✔ Ficha clinica subida con exito al sistema!
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($error)): ?>
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            ✘ <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    <?php endif; ?>
-                    <br><form method="POST">
-                        <h1 class="h3 mb-3 fw-normal text-secondary">Subir ficha clinica</h1>
-                        <div class="form-floating">
-                            <select name="idMascota" id="idMascota" class="form-select" required>
-                                <option value="" disabled selected>Seleccione una mascota</option>
-                                <?php foreach ($mascotas as $mascota): ?>
-                                    <option value="<?php echo htmlspecialchars($mascota['idMascota']); ?>">
-                                        <?php echo htmlspecialchars($mascota['nombreMascota']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <label for="idMascota">Mascota</label>
-                        </div><br>
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="vacunacionFichaClinica" name="vacunacionFichaClinica" placeholder="trivalente felina, rabia, leucemia felina" required>
-                            <label for="vacunacionFichaClinica">Vacunaciones realizadas</label>
-                        </div><br>
-                        <div class="form-floating">
-                            <input type="number" class="form-control" id="pesoFichaClinica" name="pesoFichaClinica" min="0" placeholder="2kg" required>
-                            <label for="pesoFichaClinica">Peso del animal en kilogramos</label>
-                        </div><br>
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="antecedentesFichaClinica" name="antecedentesFichaClinica" placeholder="neumonia, cancer, cataratas" required>
-                            <label for="antecedentesFichaClinica">Antecedentes del animal</label>
-                        </div><br>
-                        <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Subir al sistema</button><br><br>
-                    </form>
-                </main>
-            </div>
             <!-- CARTEL DE INSTRUCCIONES -->
-            <div class="col-lg-12 col-md-5 mb-4">
-                <div class="h-100 p-4 bg-light border rounded-3">
+            <div class="col-lg-4 col-md-5 mb-4">
+                <div class="h-80 p-4 bg-light border rounded-3">
                     <h2 class="h5 fw-normal text-secondary mb-3">Cómo completar este formulario</h2>
                     <p class="text-secondary">
                         Por favor recuerde que a la hora de registrar las vacunas realizadas y los antecedentes del animal,
@@ -153,10 +116,59 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         Antecedentes del animal: neumonia, cancer, cataratas, etc.
                     </p>
                     <p class="text-secondary mb-0">
-                        Si tiene algún problema entendiendo las instrucciones, solicite ayuda de un empleado.
+                        Si tiene algún problema entendiendo las instrucciones, solicite la ayuda de un empleado familiarizado con el sistema.
                     </p>
                 </div>
-            </div>                                      
+            </div>
+
+            <!-- FORMULARIO -->
+            <div class="col-lg-6 col-md-7">
+                <main class="form-signin m-5 mt-0">
+                    <?php if (!empty($exito)): ?>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            ✔ Ficha clinica subida con exito al sistema!
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (!empty($error)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            ✘ <?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <?php endif; ?>
+                    <br><form method="POST">
+                        <h1 class="h3 mb-3 fw-normal text-secondary">Registrar ficha clinica</h1>
+                        <div class="form-floating">
+                            <select name="idMascota" id="idMascota" class="form-select" required>
+                                <option value="" disabled selected>Seleccione una mascota</option>
+                                <?php foreach ($mascotas as $mascota): ?>
+                                    <option value="<?php echo htmlspecialchars($mascota['idMascota']); ?>">
+                                        <?php echo htmlspecialchars($mascota['nombreMascota']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <label for="idMascota">Mascota</label>
+                        </div><br>
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="vacunacionFichaClinica" name="vacunacionFichaClinica" placeholder="trivalente felina, rabia, leucemia felina" required>
+                            <label for="vacunacionFichaClinica">Vacunaciones realizadas</label>
+                        </div><br>
+                        <div class="form-floating">
+                            <input type="number" class="form-control" id="precioProducto" name="precioProducto" min="0" placeholder="2kg" required>
+                            <label for="pesoFichaClinica">Peso del animal en kilogramos</label>
+                        </div><br>
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="antecedentesFichaClinica" name="antecedentesFichaClinica" placeholder="neumonia, cancer, cataratas" required>
+                            <label for="antecedentesFichaClinica">Antecedentes del animal</label>
+                        </div><br>
+                        <button class="btn bg-info-subtle me-2 border border-info-subtle rounded-5 w-100" type="submit">Registrar</button><br><br>
+                    </form>
+                <div class="d-flex justify-content-center">
+                <a href="/Subida/manejarfichas.php" class="text-secondary nohighlight"><button class="btn bg-light-subtle border border-secondary-subtle rounded-5">Ir al menu de manejo</button></a><br><br>
+                </div>
+                </main>
+            </div>
+
         </div>
     </div><br>
     <!-- END: REGISTER FORM -->
